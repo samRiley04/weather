@@ -2,7 +2,7 @@
 
 crontab runs the weather.py script each hour. Logs a dump of the output into a log file at /tmp/weather.log
 
-DEBUGGED 28/08
+DEBUGGED 28/08/19
 Had multiple lines a day that would either record no data, or miss the first temperature value and put it in air
 pressure, then put air pressure in humidity etc. For 27/08, only one row had correct formatting and all values.
 
