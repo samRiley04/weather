@@ -14,7 +14,6 @@ import httplib2
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
-from apscheduler.schedulers.blocking import BlockingScheduler
 from oauth2client.service_account import ServiceAccountCredentials
 
 #GLOBAL VARIABLES
@@ -87,7 +86,7 @@ def reauthoriseCreds():
 
 #function that will be called by the scheduler
 def mainFunc():
-	reauthoriseCreds()
+	#reauthoriseCreds()
 	currentRow = next_free_row(wks)
 	theDate = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
 	wks.update_cell(currentRow, 1, theDate)	
@@ -118,9 +117,12 @@ printt("STARTING... ")
 writet("Authorising with sheet api... ")
 
 #initialse the google sheet we will write to
-scope = ['https://www.googleapis.com/auth/drive']
-credentials = ServiceAccountCredentials.from_json_keyfile_name('auth.json', scope)
-gc = gspread.authorize(credentials)
+#scope = ['https://www.googleapis.com/auth/drive']
+#credentials = ServiceAccountCredentials.from_json_keyfile_name('auth.json', scope)
+#gc = gspread.authorize(credentials)
+
+#better way of doing it xx
+gc = gspread.service_account(filename="auth.json")
 
 wks = gc.open("Weather data").sheet1
 print("done authorising")
