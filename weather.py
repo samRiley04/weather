@@ -11,6 +11,7 @@ import serial
 import logging
 import time
 import httplib2
+import MySQLdb
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
@@ -21,17 +22,22 @@ TEMP_COL = 2
 PRESSURE_COL = 3
 HUMIDITY_COL = 4
 
+#to login with 'sam'@'localhost'. Local raspi db will be called sampilocal.
+HOST="localhost"
+USER="sam"
+PASSWORD="samIsCool"
+DATABASE="sampilocal"
+
 #custom print function that is nicely formatted
-def printt(string):
-	string = str(datetime.now()) + " | " +  string
-	print(string)
+def printt(someString):
+	someString = str(datetime.now()) + " | " +  someString
+	print(someString)
 	return;
 #same as above, with no newline char, so can write on the same line again
-def writet(string):
-	string = str(datetime.now()) + " | " +  string
-	print(string, end='')
+def writet(someString):
+	someString = str(datetime.now()) + " | " +  someString
+	print(someString, end='')
 	return;
-
 
 #gets next empty row in the google sheet
 def next_free_row(worksheet):
@@ -40,22 +46,52 @@ def next_free_row(worksheet):
 
 #write data into the opened spreadsheet
 def writeData(row):
+	cur = None
+	temp = None
+	pressure = None
+	humidity = None
+
+	try:
+		db = MySQLdb.connect(host=HOST,
+						user=USER,
+						passwd=PASSWORD,
+						db=DATABASE)
+		cur = db.cursor()
+	except MySQLdb._exceptions.OperationalError:
+		printt("Unable to connect to MySQL db to log values locally :(")
+
+	#Get TEMP
 	ser.write("y")
 	time.sleep(1)
-	dataIn = ser.readline().strip()
+	temp = ser.readline().strip()
 	writet("data1: ")
-	print(dataIn)
-	wks.update_cell(row, TEMP_COL, dataIn)
+	print(temp)
+	wks.update_cell(row, TEMP_COL, temp)
 	time.sleep(1)
-	dataIn = ser.readline().strip()
+	#Get PRESSURE
+	pressure = ser.readline().strip()
 	writet("data2: ")
-	print(dataIn)
-	wks.update_cell(row, PRESSURE_COL, dataIn)
+	print(pressure)
+	wks.update_cell(row, PRESSURE_COL, pressure)
 	time.sleep(1)
-	dataIn = ser.readline().strip()
+	#Get HUMIDITY
+	humidity = ser.readline().strip()
 	writet("data3: ")
-	print(dataIn)
-	wks.update_cell(row, HUMIDITY_COL, dataIn)
+	print(humidity)
+	wks.update_cell(row, HUMIDITY_COL, humidity)
+	#Submit to local db
+	if cur:
+		#Complicated looking, but is just assembling the data into a string to be executed in sql.
+		#line1 - the start of the sql command
+		#line2 - the date, formatted to be accepted by the database (i.e. the form YYYYMMDD, not YYYY-MM-DD)
+		#line3 - the time, formatted as well. (HHMMSS)
+		#line4 - the data collected above
+		cur.execute("INSERT INTO weather_data(dataDate, dataTime, temperature, pressure, humidity) VALUES (" + 
+		str(datetime.date(datetime.now())).replace("-","") + ", " +
+		str(datetime.time(datetime.now()))[:8].replace(":","") + ", " +
+		str(temp) + ", " + str(pressure) + ", " + str(humidity) + ");")
+		db.commit()
+		db.close()
 
 	return 1;
 
@@ -94,9 +130,9 @@ def mainFunc():
 	#check if the serial port is open, if not, reopen
 	if not ser.isOpen():
 		ser.open()
-		printt("re-opened serial port")
+		printt("Re-opened serial port.")
 	else:
-		printt("serial port waas gucci")
+		printt("Serial port was still open, using it.")
 	writeData(currentRow)
 
 	printt("Sheet write completed")
