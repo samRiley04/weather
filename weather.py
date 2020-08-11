@@ -10,8 +10,7 @@ import json
 import serial
 import logging
 import time
-import httplib2
-import MySQLdb
+import mysql.connector
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
@@ -52,12 +51,12 @@ def writeData(row):
 	humidity = None
 
 	try:
-		db = MySQLdb.connect(host=HOST,
+		db = mysql.connector.connect(host=HOST,
 						user=USER,
-						passwd=PASSWORD,
-						db=DATABASE)
+						password=PASSWORD,
+						database=DATABASE)
 		cur = db.cursor()
-	except MySQLdb._exceptions.OperationalError:
+	except mysql.connector.errors.ProgrammingError:
 		printt("Unable to connect to MySQL db to log values locally :(")
 
 	#Get TEMP
