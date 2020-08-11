@@ -14,7 +14,6 @@ import mysql.connector
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
-from oauth2client.service_account import ServiceAccountCredentials
 
 #GLOBAL VARIABLES
 TEMP_COL = 2
@@ -40,7 +39,10 @@ def writet(someString):
 
 #gets next empty row in the google sheet
 def next_free_row(worksheet):
-	stringlist = filter(None, worksheet.col_values(1))
+	#filter is looking through each entry in the returned list of values from column 1 (time-date I think?)
+	#If it meets the criteria function (here "None") it is included.
+	#None as a function means as long as the list entry isn't empty it gets included.
+	stringlist = list(filter(None, worksheet.col_values(1)))
 	return str(len(stringlist)+1)
 
 #write data into the opened spreadsheet
@@ -60,21 +62,21 @@ def writeData(row):
 		printt("Unable to connect to MySQL db to log values locally :(")
 
 	#Get TEMP
-	ser.write("y")
+	ser.write("y".encode())
 	time.sleep(1)
-	temp = ser.readline().strip()
+	temp = ser.readline().strip().decode('utf8')
 	writet("data1: ")
 	print(temp)
 	wks.update_cell(row, TEMP_COL, temp)
 	time.sleep(1)
 	#Get PRESSURE
-	pressure = ser.readline().strip()
+	pressure = ser.readline().strip().decode('utf8')
 	writet("data2: ")
 	print(pressure)
 	wks.update_cell(row, PRESSURE_COL, pressure)
 	time.sleep(1)
 	#Get HUMIDITY
-	humidity = ser.readline().strip()
+	humidity = ser.readline().strip().decode('utf8')
 	writet("data3: ")
 	print(humidity)
 	wks.update_cell(row, HUMIDITY_COL, humidity)
