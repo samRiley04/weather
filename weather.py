@@ -1,5 +1,5 @@
 # NOTES ----->
-# running w/ python 2.6+ apparently, not python 3
+# Now working with python 3 xx
 # requires auth.json in the same directory, containing an service account API key thingo
 
 
