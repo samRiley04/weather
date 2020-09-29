@@ -2,6 +2,16 @@
 
 crontab runs the weather.py script each hour. Logs a dump of the output into a log file at /tmp/weather.log
 
+HARDWARE REPAIRED 29/09/20
+Wires finally snapped off after all that abuse of being crushed under windows and between doors.
+Resoldered and seems to work.
+
+BME280 -> Arduino wiring for future reference:
+VIN -> 5v
+GND -> GND
+SCK -> A5
+SDI -> A4
+
 DEBUGGED 28/08/19
 Had multiple lines a day that would either record no data, or miss the first temperature value and put it in air
 pressure, then put air pressure in humidity etc. For 27/08, only one row had correct formatting and all values.
@@ -12,3 +22,4 @@ it and then closing the script. The port isnt being kept open, so I think this i
 
 Also quickly put in some functions to manually send and receive data from arduino to see if there were any issues
 there, but it was all working normally.
+
