@@ -23,3 +23,5 @@ it and then closing the script. The port isnt being kept open, so I think this i
 Also quickly put in some functions to manually send and receive data from arduino to see if there were any issues
 there, but it was all working normally.
 
+UPDATED 7/01/2021
+Long time since I updated this. Have brought it a bit more up to speed as I've learned more python standards. Now utilises HTTP calls to my webserver to POST data.

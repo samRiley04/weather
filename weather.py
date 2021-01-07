@@ -11,20 +11,22 @@ import serial
 import logging
 import time
 import mysql.connector
+import yaml
+import requests
 from datetime import datetime
 from datetime import date
 from datetime import timedelta
+
+import exceptions as ex
+
+#Import config
+config = yaml.safe_load(open("config.yml"))
 
 #GLOBAL VARIABLES
 TEMP_COL = 2
 PRESSURE_COL = 3
 HUMIDITY_COL = 4
-
-#to login with 'sam'@'localhost'. Local raspi db will be called sampilocal.
-HOST="localhost"
-USER="sam"
-PASSWORD="samIsCool"
-DATABASE="sampilocal"
+ser = None
 
 #custom print function that is nicely formatted
 def printt(someString):
@@ -37,72 +39,56 @@ def writet(someString):
 	print(someString, end='')
 	return;
 
-#gets next empty row in the google sheet
-def next_free_row(worksheet):
-	#filter is looking through each entry in the returned list of values from column 1 (time-date I think?)
-	#If it meets the criteria function (here "None") it is included.
-	#None as a function means as long as the list entry isn't empty it gets included.
-	stringlist = list(filter(None, worksheet.col_values(1)))
-	return str(len(stringlist)+1)
+#write data using the webapp API (/api/weatherdata)
+def writeData():
+	theDate = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
 
-#write data into the opened spreadsheet
-def writeData(row):
-	cur = None
-	temp = None
-	pressure = None
-	humidity = None
-
-	try:
-		db = mysql.connector.connect(host=HOST,
-						user=USER,
-						password=PASSWORD,
-						database=DATABASE)
-		cur = db.cursor()
-	except mysql.connector.errors.ProgrammingError:
-		printt("Unable to connect to MySQL db to log values locally :(")
-
-	#Get TEMP
+	dataCollected = []
 	ser.write("y".encode())
-	time.sleep(1)
-	temp = ser.readline().strip().decode('utf8')
-	writet("data1: ")
-	print(temp)
-	wks.update_cell(row, TEMP_COL, temp)
-	time.sleep(1)
-	#Get PRESSURE
-	pressure = ser.readline().strip().decode('utf8')
-	writet("data2: ")
-	print(pressure)
-	wks.update_cell(row, PRESSURE_COL, pressure)
-	time.sleep(1)
-	#Get HUMIDITY
-	humidity = ser.readline().strip().decode('utf8')
-	writet("data3: ")
-	print(humidity)
-	wks.update_cell(row, HUMIDITY_COL, humidity)
-	#Submit to local db
-	if cur:
-		#Complicated looking, but is just assembling the data into a string to be executed in sql.
-		#line1 - the start of the sql command
-		#line2 - the date, formatted to be accepted by the database (i.e. the form YYYYMMDD, not YYYY-MM-DD)
-		#line3 - the time, formatted as well. (HHMMSS)
-		#line4 - the data collected above
-		cur.execute("INSERT INTO weather_data(dataDate, dataTime, temperature, pressure, humidity) VALUES (" + 
-		str(datetime.date(datetime.now())).replace("-","") + ", " +
-		str(datetime.time(datetime.now()))[:8].replace(":","") + ", " +
-		str(temp) + ", " + str(pressure) + ", " + str(humidity) + ");")
-		db.commit()
-		db.close()
+	for index, column in enumerate([TEMP_COL, PRESSURE_COL, HUMIDITY_COL]):
+		time.sleep(1)
+		data = ser.readline().strip().decode('utf8')
+		writet("data" + str(index+1) + ": ")
+		print(data)
+		dataCollected.append(data)
+		time.sleep(1)
 
-	return 1;
+	if not len(dataCollected) == 3:
+		#Didn't collect enough data
+		s = ""
+		for d in dataCollected:
+			s += str(d) + ", "
+		s = s[:-2]
+		raise ex.serialError("Only collected " + s)
+
+	r = requests.post('http://localhost:' + config["webserver-port"] + '/api/weatherdata', data = {
+																"date": theDate[:theDate.index(" ")].replace("/", "-"),
+																"time": theDate[theDate.index(" ")+1:],
+																"temperature": dataCollected[0],
+																"pressure": dataCollected[1],
+																"humidity": dataCollected[2]
+															})
+
+	if r.status_code == 201:
+		response = r.json()
+		#prints "Logged data in MySQL database at id 138", OR
+		#"Logged data in Google Spreadsheet at row 3982"
+		idORrow = str(list(response["data"])[-1])
+		value = str(list(response["data"].values())[-1])
+		printt("201 CREATED - Logged data in " + response["data"]["database"] + " at " + idORrow + " " + value)
+	elif r.status_code == 404:
+		printt("404 NOT FOUND - " + response["data"]["errorMessage"])
+	elif r.status_code == 400:
+		printt("400 BAD REQUEST - " + response["data"]["errorMessage"])
+
 
 #debugging command. To be called manually with debug()
 def takeData():
-	seriousBS = ser.readline().strip()
+	#seriousBS = ser.readline().strip()
 	return seriousBS
 #debugging command. To be called manually with debug()
 def sendYes():
-	ser.write("y")
+	#ser.write("y")
 	return 1
 #debugging command. To enable calling of takeData and send "yes"
 def debug():
@@ -113,32 +99,9 @@ def debug():
 		elif input=="t":
 			printt(takeData())
 		else:
-			printt("didnt catch that?") 
+			printt("invalid command") 
 
-#reauthorise the google sheet to use
-def reauthoriseCreds():
-	credentials = ServiceAccountCredentials.from_json_keyfile_name('auth.json', scope)
-	gc = gspread.authorize(credentials)
-	gc.login()
-
-#function that will be called by the scheduler
-def mainFunc():
-	#reauthoriseCreds()
-	currentRow = next_free_row(wks)
-	theDate = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
-	wks.update_cell(currentRow, 1, theDate)	
-
-	#check if the serial port is open, if not, reopen
-	if not ser.isOpen():
-		ser.open()
-		printt("Re-opened serial port.")
-	else:
-		printt("Serial port was still open, using it.")
-	writeData(currentRow)
-
-	printt("Sheet write completed")
-	printt("-------------------")
-
+#debugging command
 def userInput():
 	while True:
 		writet("")
@@ -146,35 +109,36 @@ def userInput():
 		printt("Taking one-off data collection")
 		mainFunc()
 
-# 	CODE START --------------->
 
-#clean up
-os.system('clear')
-printt("STARTING... ")
-writet("Authorising with sheet api... ")
+def mainFunc():
+	#clean up
+	os.system('clear')
+	printt("STARTING... ")
 
-#initialse the google sheet we will write to
-#scope = ['https://www.googleapis.com/auth/drive']
-#credentials = ServiceAccountCredentials.from_json_keyfile_name('auth.json', scope)
-#gc = gspread.authorize(credentials)
+	#Preparing the arduino
+	ser = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
+	time.sleep(5)
+	ser = None
+	
+	#check if the serial port is open, if not, reopen
+	if not ser.isOpen():
+		ser.open()
+		printt("Re-opened serial port.")
+	else:
+		printt("Serial port was still open, using it.")
 
-#better way of doing it xx
-gc = gspread.service_account(filename="auth.json")
+	logging.basicConfig()
+	printt("Making a data collection. Waiting... ")
 
-wks = gc.open("Weather data").sheet1
-print("done authorising")
+	try:
+		writeData()
+	except (ex.serialError) as e:
+		printt("Unable to collect a full dataset!")
+		printt(str(e))
 
-#preparing the arduino. I think it's fucky because we aren't letting it start up before sending it commands, hence the sleep.
-ser = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
-time.sleep(5)
+	printt("Sheet write completed")
+	printt("-------------------")
 
-
-dTemp = ""
-dPressure = ""
-dHumidity = ""
-
-logging.basicConfig()
-printt("Making a data collection. Waiting... ")
-#userInput()
 mainFunc()
+#userInput()
 #debug()
