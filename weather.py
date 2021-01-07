@@ -62,15 +62,15 @@ def writeData():
 		raise ex.serialError("Only collected " + s)
 
 	r = requests.post('http://localhost:' + config["webserver-port"] + '/api/weatherdata', data = {
-																"date": theDate[:theDate.index(" ")].replace("/", "-"),
-																"time": theDate[theDate.index(" ")+1:],
-																"temperature": dataCollected[0],
-																"pressure": dataCollected[1],
-																"humidity": dataCollected[2]
-															})
-
+			"date": theDate[:theDate.index(" ")].replace("/", "-"),
+			"time": theDate[theDate.index(" ")+1:],
+			"temperature": dataCollected[0],
+			"pressure": dataCollected[1],
+			"humidity": dataCollected[2]
+		})
+	
+	response = r.json()
 	if r.status_code == 201:
-		response = r.json()
 		#prints "Logged data in MySQL database at id 138", OR
 		#"Logged data in Google Spreadsheet at row 3982"
 		idORrow = str(list(response["data"])[-1])
