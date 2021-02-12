@@ -40,7 +40,7 @@ def writet(someString):
 	return;
 
 #write data using the webapp API (/api/weatherdata)
-def writeData():
+def writeData(ser):
 	theDate = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
 
 	dataCollected = []
@@ -118,7 +118,6 @@ def mainFunc():
 	#Preparing the arduino
 	ser = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
 	time.sleep(5)
-	ser = None
 	
 	#check if the serial port is open, if not, reopen
 	if not ser.isOpen():
@@ -131,7 +130,7 @@ def mainFunc():
 	printt("Making a data collection. Waiting... ")
 
 	try:
-		writeData()
+		writeData(ser)
 	except (ex.serialError) as e:
 		printt("Unable to collect a full dataset!")
 		printt(str(e))
