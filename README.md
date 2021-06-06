@@ -25,3 +25,9 @@ there, but it was all working normally.
 
 UPDATED 7/01/2021
 Long time since I updated this. Have brought it a bit more up to speed as I've learned more python standards. Now utilises HTTP calls to my webserver to POST data.
+
+# Crontab contents
+```
+@reboot sleep 10 && cd ~/Documents/Samhome/Samhome; ./start.zsh
+0 0 * * * cd ~/Documents/weather; python3 weather.py
+```

@@ -1,6 +1,5 @@
 # NOTES ----->
 # Now working with python 3 xx
-# requires auth.json in the same directory, containing an service account API key thingo
 
 
 from __future__ import print_function
