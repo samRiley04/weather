@@ -1,0 +1,5 @@
+APScheduler==3.8.0
+pyserial==3.5
+PyYAML==5.4
+yml==0.0.1
+gspread==3.7.0

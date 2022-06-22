@@ -43,7 +43,9 @@ def writeData(ser):
 	theDate = datetime.now().strftime("%Y/%m/%d %H:%M:%S")
 
 	dataCollected = []
-	ser.write("y".encode())
+	#For some reason the arduino code wasn't working in my testing environment without checking for a newline.
+	#So now we send newlines with at the ends of our requests for data.
+	ser.write("y\n".encode())
 	for index, column in enumerate([TEMP_COL, PRESSURE_COL, HUMIDITY_COL]):
 		time.sleep(1)
 		data = ser.readline().strip().decode('utf8')
@@ -80,23 +82,14 @@ def writeData(ser):
 	elif r.status_code == 400:
 		printt("400 BAD REQUEST - " + response["data"]["errorMessage"])
 
-
-#debugging command. To be called manually with debug()
-def takeData():
-	#seriousBS = ser.readline().strip()
-	return seriousBS
-#debugging command. To be called manually with debug()
-def sendYes():
-	#ser.write("y")
-	return 1
 #debugging command. To enable calling of takeData and send "yes"
 def debug():
 	while True:
-		input = raw_input("TYPE s FOR SEND A \"YES\", TYPE t FOR TAKE DATA")
-		if input=="s":
-			sendYes()
-		elif input=="t":
-			printt(takeData())
+		userinput = input("TYPE s FOR SEND A \"YES\", TYPE t FOR TAKE DATA")
+		if userinput=="s":
+			ser.write("y\n".encode())
+		elif userinput=="t":
+			printt(ser.readline().strip().decode('utf8'))
 		else:
 			printt("invalid command") 
 
@@ -104,7 +97,7 @@ def debug():
 def userInput():
 	while True:
 		writet("")
-		raw_input("Press any key to take a one-off data collection... ")
+		input("Press any key to take a one-off data collection... ")
 		printt("Taking one-off data collection")
 		mainFunc()
 
