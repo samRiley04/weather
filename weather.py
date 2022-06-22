@@ -62,7 +62,7 @@ def writeData(ser):
 		s = s[:-2]
 		raise ex.serialError("Only collected " + s)
 
-	r = requests.post('http://localhost:' + config["webserver-port"] + '/api/weatherdata', data = {
+	r = requests.post('http://' + config["webserver-ip"] + '/api/weatherdata', data = {
 			"date": theDate[:theDate.index(" ")].replace("/", "-"),
 			"time": theDate[theDate.index(" ")+1:],
 			"temperature": dataCollected[0],
