@@ -1,5 +1,7 @@
 # weather ting
 
+NOTE - Samhome-agent is now a superset of this codebase. Essentially redundant.
+
 crontab runs the weather.py script each hour. Logs a dump of the output into a log file at /tmp/weather.log
 
 HARDWARE REPAIRED 29/09/20
